@@ -6,22 +6,19 @@ using UnityEngine.InputSystem;
 public class PlayerControls : MonoBehaviour
 {
     [Header("Movement")]
-    public float moveSpeed = 30f;
-    public float jumpHeight = 7.5f;
-    public float gravity = -50f;
+    public float walkSpeed = 15f;
+    public float sprintSpeed = 25f;
+    public float acceleration = 15f;
+    public float deceleration = 15f;
 
-    [Header("Sprinting")]
-    public float sprintSpeed = 60f;
-    private bool _isSprinting;
+    [Header("Jump")]
+    public float jumpHeight = 3f;
+    public float gravity = -30f;
 
     [Header("Dodge")]
-    public float dodgeSpeed = 150f;
-    public float dodgeDuration = 0.1f;
+    public float dodgeDistance = 5f;
+    public float dodgeDuration = 0.15f;
     public float dodgeCooldown = 5f;
-
-    private bool _isDodging;
-    private float _dodgeCooldownTimer;
-    private Vector3 _dodgeDirection;
 
     [Header("Look")]
     public float mouseSensitivity = 0.2f;
@@ -33,8 +30,14 @@ public class PlayerControls : MonoBehaviour
     private CharacterController _cc;
     private Vector2 _moveInput;
     private Vector2 _lookInput;
-    private Vector3 _velocity;
+    private Vector3 _horizontalVelocity;
+    private float _verticalVelocity;
     private float _cameraPitch = 0f;
+
+    private bool _isSprinting;
+    private bool _isDodging;
+    private float _dodgeCooldownTimer;
+
 
     private PlayerControlsInputSystem _inputActions;
 
@@ -75,13 +78,15 @@ public class PlayerControls : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext ctx)
     {
-        if (ctx.performed && _cc.isGrounded)
-            _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        if (ctx.performed && _cc.isGrounded && !_isDodging)
+        {
+            _verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
     }
 
     public void OnDodge(InputAction.CallbackContext ctx)
     {
-        if (ctx.performed && !_isDodging && _dodgeCooldownTimer <= 0f)
+        if (ctx.performed && !_isDodging && _dodgeCooldownTimer <= 0f && _cc.isGrounded)
             StartCoroutine(DodgeCoroutine());
     }
 
@@ -91,12 +96,21 @@ public class PlayerControls : MonoBehaviour
         _dodgeCooldownTimer = dodgeCooldown;
 
         Vector2 input = _moveInput != Vector2.zero ? _moveInput : new Vector2(0, -1);
-        _dodgeDirection = transform.right * input.x + transform.forward * input.y;
+        Vector3 direction = (transform.right * input.x + transform.forward * input.y).normalized;
+        if (direction == Vector3.zero) direction = transform.forward;
 
         float elapsed = 0f;
+        Vector3 start = transform.position;
+        Vector3 target = start + direction * dodgeDistance;
+
         while (elapsed < dodgeDuration)
         {
-            _cc.Move(_dodgeDirection * (dodgeSpeed * Time.deltaTime));
+            float t = elapsed / dodgeDuration;
+            t = t * t * (3f - 2f * t);
+
+            Vector3 nextPos = Vector3.Lerp(start, target, t);
+            _cc.Move((nextPos - transform.position));
+
             elapsed += Time.deltaTime;
             yield return null;
         }
@@ -104,7 +118,6 @@ public class PlayerControls : MonoBehaviour
         _isDodging = false;
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (Time.timeScale == 0f) return;
@@ -120,15 +133,27 @@ public class PlayerControls : MonoBehaviour
     {
         if (_isDodging) return;
 
-        if (_cc.isGrounded && _velocity.y < 0f)
-            _velocity.y = -2f;
+        if (_cc.isGrounded && _verticalVelocity < 0f)
+            _verticalVelocity = -2f;
 
-        _velocity.y += gravity * Time.deltaTime;
+        _verticalVelocity += gravity * Time.deltaTime;
 
-        Vector3 move = transform.right * _moveInput.x + transform.forward * _moveInput.y;
+        Vector3 moveDir = transform.right * _moveInput.x + transform.forward * _moveInput.y;
 
-        float currentSpeed = _isSprinting ? sprintSpeed : moveSpeed;
-        _cc.Move(move * (currentSpeed * Time.deltaTime) + _velocity * Time.deltaTime);
+        float targetSpeed = _isSprinting ? sprintSpeed : walkSpeed;
+
+        if (moveDir.magnitude > 0.1f)
+        {
+            Vector3 targetVelocity = moveDir.normalized * targetSpeed;
+            _horizontalVelocity = Vector3.Lerp(_horizontalVelocity, targetVelocity, acceleration * Time.deltaTime);
+        }
+        else
+        {
+            _horizontalVelocity = Vector3.Lerp(_horizontalVelocity, Vector3.zero, deceleration * Time.deltaTime);
+        }
+
+        Vector3 totalVelocity = _horizontalVelocity + new Vector3(0f, _verticalVelocity, 0f);
+        _cc.Move(totalVelocity * Time.deltaTime);
     }
 
     void HandleLook()
@@ -138,5 +163,20 @@ public class PlayerControls : MonoBehaviour
         _cameraPitch -= _lookInput.y * mouseSensitivity;
         _cameraPitch = Mathf.Clamp(_cameraPitch, -maxLookAngle, maxLookAngle);
         cameraTransform.localRotation = Quaternion.Euler(_cameraPitch, 0f, 0f);
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return _horizontalVelocity + new Vector3(0f, _verticalVelocity, 0f);
+    }
+
+    public bool IsGrounded()
+    {
+        return _cc.isGrounded;
+    }
+
+    public Vector2 GetLookInput()
+    {
+        return _lookInput;
     }
 }
