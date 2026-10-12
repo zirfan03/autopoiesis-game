@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class VisualBullet : MonoBehaviour
 {
-    [SerializeField] private float speed = 75f;
+    [SerializeField] private float speed = 32f;
 
     private Vector3 target;
     private bool initialized;

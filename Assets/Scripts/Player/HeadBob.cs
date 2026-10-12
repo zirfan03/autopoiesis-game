@@ -4,9 +4,9 @@ public class HeadBob : MonoBehaviour
 {
     [Header("Configuration")]
     public bool enableHeadBob = true;
-    public float bobSpeed = 7f;
-    public float bobAmount = 0.05f;
-    public float bobMultiplierSprint = 1.5f;
+    public float bobSpeed = 10f;
+    public float bobAmount = 0.25f;
+    public float bobMultiplierSprint = 1.75f;
 
     [Header("References")]
     public Transform cameraTransform;
@@ -23,7 +23,7 @@ public class HeadBob : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!enableHeadBob || cameraTransform == null || playerControls == null) return;
 

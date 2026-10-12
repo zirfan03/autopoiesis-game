@@ -9,7 +9,7 @@ public class WeaponFire : MonoBehaviour
     [SerializeField] private Camera aimCamera;
 
     [Header("Settings")]
-    [SerializeField] private float fireRate = 16f;
+    [SerializeField] private float fireRate = 32f;
     [SerializeField] private bool automatic = true;
     [SerializeField] private float range = 100f;
     [SerializeField] private float damage = 5f;

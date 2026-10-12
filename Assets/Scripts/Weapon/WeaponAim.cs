@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 
 public class WeaponAim : MonoBehaviour
 {
+    [Header("Configuration")]
+    public bool enableAiming = true;
+
     [Header("Input")]
     [SerializeField] private InputActionReference aimAction;
 
@@ -41,6 +44,8 @@ public class WeaponAim : MonoBehaviour
 
     private void OnAimStarted(InputAction.CallbackContext ctx)
     {
+        if (!enableAiming) return;
+
         IsAiming = true;
         if (crosshair != null) crosshair.SetActive(false);
     }
@@ -53,6 +58,12 @@ public class WeaponAim : MonoBehaviour
 
     private void Update()
     {
+        if (!enableAiming && IsAiming)
+        {
+            IsAiming = false;
+            if (crosshair != null) crosshair.SetActive(true);
+        }
+
         float t = aimSpeed * Time.deltaTime;
 
         Vector3 targetPos = IsAiming ? aimPosition : hipPosition;
