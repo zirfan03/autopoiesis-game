@@ -45,8 +45,8 @@ public class WaypointElevator : MonoBehaviour
     [SerializeField] private Transform topPoint;
 
     [Header("Elevator Settings")]
-    [SerializeField] private float speed = 20f;
-    [SerializeField] private float startDelay = 1f;
+    [SerializeField] private float speed = 30f;
+    [SerializeField] private float startDelay = 5f;
 
     [Header("Doors (Child Objects)")]
     [SerializeField] private float doorDelay = 5f;
@@ -54,12 +54,12 @@ public class WaypointElevator : MonoBehaviour
     [SerializeField] private MovingPart[] doors;
 
     [Header("Bridges (Child Objects)")]
-    [SerializeField] private float bridgeSpeed = 1.25f;
+    [SerializeField] private float bridgeSpeed = 5f;
     [SerializeField] private MovingPart[] bridges;
 
     [Header("Retractable Gate (External)")]
     [SerializeField] private Animator gateAnimator;
-    [SerializeField] private float gateDelay = 1.25f;
+    [SerializeField] private float gateDelay = 2.5f;
     [SerializeField] private string gateRetractBool = "IsRetracted";
 
     private Rigidbody _rb;
@@ -68,6 +68,8 @@ public class WaypointElevator : MonoBehaviour
     private bool _doorsTargetOpen = false;
     private bool _bridgesMoving = false;
     private bool _bridgesTargetOpen = false;
+
+    private Transform _currentTarget;
 
     private void Start()
     {
@@ -81,6 +83,7 @@ public class WaypointElevator : MonoBehaviour
         transform.position = bottomPoint.position;
         Physics.SyncTransforms();
 
+        _currentTarget = topPoint;
         StartCoroutine(ElevatorSequence());
     }
 
@@ -105,6 +108,38 @@ public class WaypointElevator : MonoBehaviour
         }
     }
 
+    public void StartReturnSequence()
+    {
+        StartCoroutine(ReturnSequenceCoroutine());
+    }
+
+    private IEnumerator ReturnSequenceCoroutine()
+    {
+        if (gateAnimator != null)
+        {
+            gateAnimator.SetBool(gateRetractBool, false);
+        }
+        yield return new WaitForSeconds(gateDelay);
+
+        _bridgesTargetOpen = false;
+        _bridgesMoving = true;
+        yield return new WaitUntil(() => !_bridgesMoving);
+
+        yield return new WaitForSeconds(doorDelay * 0.2f);
+
+        _doorsTargetOpen = false;
+        _doorsMoving = true;
+        yield return new WaitUntil(() => !_doorsMoving);
+
+        yield return new WaitForSeconds(startDelay);
+
+        _currentTarget = bottomPoint;
+        _isMoving = true;
+        yield return new WaitUntil(() => !_isMoving);
+
+        this.enabled = false;
+    }
+
     private void Update()
     {
         if (Time.timeScale == 0f) return;
@@ -113,12 +148,12 @@ public class WaypointElevator : MonoBehaviour
         {
             transform.position = Vector3.MoveTowards(
                 transform.position,
-                topPoint.position,
+                _currentTarget.position,
                 speed * Time.deltaTime);
 
-            if (Vector3.Distance(transform.position, topPoint.position) < 0.001f)
+            if (Vector3.Distance(transform.position, _currentTarget.position) < 0.001f)
             {
-                transform.position = topPoint.position;
+                transform.position = _currentTarget.position;
                 _isMoving = false;
             }
         }
