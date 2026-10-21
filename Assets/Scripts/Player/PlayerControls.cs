@@ -11,6 +11,10 @@ public class PlayerControls : MonoBehaviour
     public float acceleration = 15f;
     public float deceleration = 15f;
 
+    [Header("Movement Directional Multipliers")]
+    public float strafeMultiplier = 0.8f;
+    public float backwardMultiplier = 0.6f;
+
     [Header("Jump")]
     public float jumpHeight = 3f;
     public float gravity = -30f;
@@ -140,7 +144,20 @@ public class PlayerControls : MonoBehaviour
 
         Vector3 moveDir = transform.right * _moveInput.x + transform.forward * _moveInput.y;
 
-        float targetSpeed = _isSprinting ? sprintSpeed : walkSpeed;
+        float targetSpeed = walkSpeed;
+
+        if (_moveInput.y > 0.1f)
+        {
+            targetSpeed = _isSprinting ? sprintSpeed : walkSpeed;
+        }
+        else if (_moveInput.y < -0.1f)
+        {
+            targetSpeed = walkSpeed * backwardMultiplier;
+        }
+        else if (Mathf.Abs(_moveInput.x) > 0.1f)
+        {
+            targetSpeed = walkSpeed * strafeMultiplier;
+        }
 
         if (moveDir.magnitude > 0.1f)
         {

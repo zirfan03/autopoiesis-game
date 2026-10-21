@@ -80,6 +80,12 @@ public class WaypointElevator : MonoBehaviour
         foreach (var door in doors) door.Init();
         foreach (var bridge in bridges) bridge.Init();
 
+        if (gateAnimator != null)
+        {
+            gateAnimator.keepAnimatorStateOnDisable = true;
+            gateAnimator.enabled = false;
+        }
+
         transform.position = bottomPoint.position;
         Physics.SyncTransforms();
 
@@ -104,6 +110,7 @@ public class WaypointElevator : MonoBehaviour
         yield return new WaitForSeconds(gateDelay);
         if (gateAnimator != null)
         {
+            gateAnimator.enabled = true;
             gateAnimator.SetBool(gateRetractBool, true);
         }
     }
@@ -118,6 +125,7 @@ public class WaypointElevator : MonoBehaviour
         if (gateAnimator != null)
         {
             gateAnimator.SetBool(gateRetractBool, false);
+            StartCoroutine(DisableAnimatorAfterClose());
         }
         yield return new WaitForSeconds(gateDelay);
 
@@ -138,6 +146,17 @@ public class WaypointElevator : MonoBehaviour
         yield return new WaitUntil(() => !_isMoving);
 
         this.enabled = false;
+    }
+
+    private IEnumerator DisableAnimatorAfterClose()
+    {
+        yield return null;
+
+        yield return new WaitUntil(() =>
+        !gateAnimator.IsInTransition(0) &&
+        gateAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+
+        gateAnimator.enabled = false;
     }
 
     private void Update()

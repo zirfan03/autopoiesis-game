@@ -5,6 +5,9 @@ public class ElevatorReturnSequence : MonoBehaviour
     [Header("Elevator Reference")]
     public WaypointElevator targetElevator;
 
+    [Header("Enemy Encounter")]
+    public EnemySpawner targetSpawner;
+
     private bool hasTriggered = false;
 
     private void OnTriggerEnter(Collider other)
@@ -20,6 +23,11 @@ public class ElevatorReturnSequence : MonoBehaviour
             else
             {
                 Debug.LogWarning("Target Elevator not assigned in the Return Trigger");
+            }
+
+            if (targetSpawner != null)
+            {
+                targetSpawner.SpawnEnemies();
             }
         }
     }
