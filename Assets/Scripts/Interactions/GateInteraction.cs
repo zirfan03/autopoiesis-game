@@ -4,8 +4,11 @@ using UnityEngine.InputSystem;
 
 public class GateInteraction : MonoBehaviour
 {
+    [Header("Gate Settings")]
     [SerializeField] private Animator gateAnimator;
     [SerializeField] private TMP_Text gatePromptText;
+
+    [SerializeField] private int gateCost = 500;
 
     private PlayerInput playerInput;
     private InputAction interactAction;
@@ -29,7 +32,11 @@ public class GateInteraction : MonoBehaviour
             isInRange = true;
 
             if (gatePromptText != null)
+            {
+                gatePromptText.text = "Press 'E' to Open Gate [Cost: " + gateCost + "]";
                 gatePromptText.gameObject.SetActive(true);
+            }
+
 
             playerInput = other.GetComponent<PlayerInput>();
 
@@ -65,7 +72,17 @@ public class GateInteraction : MonoBehaviour
     {
         if (isInRange && !hasOpened)
         {
-            OpenGate();
+            if (ScoreManager.Instance.SpendScore(gateCost))
+            {
+                OpenGate();
+            }
+            else
+            {
+                if (gatePromptText != null)
+                {
+                    gatePromptText.text = "Not enough Dark Essence!";
+                }
+            }
         }
     }
 

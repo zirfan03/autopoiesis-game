@@ -17,10 +17,10 @@ TagManager:
   - Enemies
   - Floors
   - Stairs
-  - 
-  - 
-  - 
-  - 
+  - Walls
+  - Minor Obstacles
+  - Major Obstacles
+  - Walkways
   - 
   - 
   - 

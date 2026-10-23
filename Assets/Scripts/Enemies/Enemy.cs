@@ -4,6 +4,9 @@ using UnityEngine;
 public class Enemy : MonoBehaviour, IDamageable
 {
     [SerializeField] private float health = 100f;
+
+    [SerializeField] private int pointsOnKill = 100;
+
     private zombieEnemyAI zombieAI;
     private bool isDead = false;
 
@@ -21,6 +24,9 @@ public class Enemy : MonoBehaviour, IDamageable
         if (health <= 0f)
         {
             isDead = true;
+
+            ScoreManager.Instance.AddScore(pointsOnKill);
+
             zombieAI.TriggerDeath();
         }
     }

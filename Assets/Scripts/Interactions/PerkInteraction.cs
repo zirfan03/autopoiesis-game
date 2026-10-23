@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -9,6 +8,9 @@ public class PerkInteraction : MonoBehaviour
     [Header("Perk Settings")]
     [Tooltip("Give all instances of perk the same ID")]
     [SerializeField] private string perkID;
+
+    [SerializeField] private string perkName = "Perk Name Here";
+    [SerializeField] private int perkCost = 1000;
 
     [SerializeField] private TMP_Text perkPromptText;
     [SerializeField] private UnityEngine.UI.Image perkIcon;
@@ -35,7 +37,11 @@ public class PerkInteraction : MonoBehaviour
             isInRange = true;
 
             if (perkPromptText != null)
+            {
+                perkPromptText.text = "Press E to Buy " + perkName + " [Cost: " + perkCost + "]";
                 perkPromptText.gameObject.SetActive(true);
+            }
+
 
             playerInput = other.GetComponent<PlayerInput>();
 
@@ -72,7 +78,17 @@ public class PerkInteraction : MonoBehaviour
     {
         if (isInRange && !hasBought)
         {
-            BuyPerk();
+            if (ScoreManager.Instance.SpendScore(perkCost))
+            {
+                BuyPerk();
+            }
+            else
+            {
+                if (perkPromptText != null)
+                {
+                    perkPromptText.text = "Not enough Dark Essence";
+                }
+            }
         }
     }
 
