@@ -1,27 +1,38 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class PauseControls : MonoBehaviour
 {
-    public GameObject pauseMenuUI;
-    private bool _isPaused = false;
+    public static PauseControls Instance { get; private set; }
+    public static event Action<bool> OnGamePaused;
+
+    [Header("UI References")]
+    [SerializeField] private GameObject pauseMenuUI;
+
+    public bool IsPaused { get; private set; } = false;
 
     private PlayerControlsInputSystem _inputActions;
 
+    private float _cachedTimeScale = 1f;
+
     void Awake()
     {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+
         _inputActions = new PlayerControlsInputSystem();
     }
 
     void OnEnable()
     {
         _inputActions.Menus.Enable();
-        _inputActions.Menus.Pause.performed += OnPause;
+        _inputActions.Menus.Pause.performed += OnPauseInput;
     }
 
     void OnDisable()
     {
-        _inputActions.Menus.Pause.performed -= OnPause;
+        _inputActions.Menus.Pause.performed -= OnPauseInput;
         _inputActions.Menus.Disable();
     }
 
@@ -30,33 +41,46 @@ public class PauseControls : MonoBehaviour
         _inputActions.Dispose();
     }
 
-    private void OnPause(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
+    private void OnPauseInput(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
     {
-        if (_isPaused) Resume();
+        if (IsPaused) Resume();
         else Pause();
-    }
-
-    public void Resume()
-    {
-        pauseMenuUI.SetActive(false);
-        Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-        _isPaused = false;
     }
 
     public void Pause()
     {
-        pauseMenuUI.SetActive(true);
+        if (IsPaused) return;
+        IsPaused = true;
+
+        _cachedTimeScale = Time.timeScale;
         Time.timeScale = 0f;
+        AudioListener.pause = true;
+
+        pauseMenuUI.SetActive(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        _isPaused = true;
+
+        OnGamePaused?.Invoke(true);
+    }
+    public void Resume()
+    {
+        if (!IsPaused) return;
+        IsPaused = false;
+
+        Time.timeScale = _cachedTimeScale;
+        AudioListener.pause = false;
+
+        pauseMenuUI.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        OnGamePaused?.Invoke(false);
     }
 
     public void GoToMainMenu()
     {
         Time.timeScale = 1f;
+        AudioListener.pause = false;
         SceneManager.LoadScene(0);
     }
 }

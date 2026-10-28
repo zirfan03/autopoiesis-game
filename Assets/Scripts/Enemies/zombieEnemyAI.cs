@@ -12,7 +12,6 @@ public class zombieEnemyAI : MonoBehaviour
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float runSpeed = 5f;
     [SerializeField] private float turnSlowdownMultiplier = 0.25f;
-    [SerializeField] private float pathUpdateRate = 0.1f;
     [SerializeField] private bool isRunning = false;
 
     [Header("Attack Settings")]
@@ -23,6 +22,10 @@ public class zombieEnemyAI : MonoBehaviour
     [SerializeField] private float walkWindUpDelay = 1f;
     [SerializeField] private float runWindUpDelay = 0.25f;
 
+    [Header("Swarm Settings")]
+    [Tooltip("How far around the player should the zombies try to swarm.")]
+    [SerializeField] private float swarmRadius = 1.5f;
+
     [Header("References")]
     [SerializeField] private Animator animator;
     [SerializeField] private MeshRenderer meshRenderer;
@@ -31,9 +34,10 @@ public class zombieEnemyAI : MonoBehaviour
     private Transform player;
     private IDamageable playerDamageable;
 
-    private float pathTimer;
     private float attackTimer;
     private Color originalColor;
+
+    public bool IsAlive => currentState != ZombieState.Dead;
 
     private void Awake()
     {
@@ -42,6 +46,8 @@ public class zombieEnemyAI : MonoBehaviour
         agent.acceleration = 10f;
         agent.stoppingDistance = attackRange;
         agent.autoBraking = true;
+
+        agent.avoidancePriority = Random.Range(10, 90);
 
         if (meshRenderer != null)
             originalColor = meshRenderer.material.color;
@@ -100,14 +106,21 @@ public class zombieEnemyAI : MonoBehaviour
             return;
         }
 
-        pathTimer -= Time.deltaTime;
-        if (pathTimer <= 0f && agent.isOnNavMesh)
-        {
-            agent.SetDestination(player.position);
-            pathTimer = pathUpdateRate;
-        }
-
         ApplyTurnSlowdown();
+    }
+
+    public void UpdateNavMeshPath()
+    {
+        if (currentState == ZombieState.Dead || currentState == ZombieState.Spawning || player == null)
+            return;
+
+        if (currentState == ZombieState.Chasing && agent.isOnNavMesh)
+        {
+            Vector2 randomOffset = Random.insideUnitCircle * swarmRadius;
+            Vector3 swarmTarget = player.position + new Vector3(randomOffset.x, 0f, randomOffset.y);
+
+            agent.SetDestination(player.position);
+        }
     }
 
     private void HandleAttacking(float distanceToPlayer)
@@ -179,6 +192,11 @@ public class zombieEnemyAI : MonoBehaviour
     {
         currentState = ZombieState.Chasing;
         agent.enabled = true;
+
+        if (EnemyPathManager.Instance != null)
+        {
+            EnemyPathManager.Instance.RegisterZombie(this);
+        }
     }
 
     public void TriggerDeath()

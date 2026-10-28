@@ -56,16 +56,31 @@ public class PlayerControls : MonoBehaviour
     void OnEnable()
     {
         _inputActions.Player.Enable();
+        PauseControls.OnGamePaused += HandleGamePaused;
     }
 
     void OnDisable()
     {
         _inputActions.Player.Disable();
+        PauseControls.OnGamePaused -= HandleGamePaused;
     }
+
+
 
     private void OnDestroy()
     {
         _inputActions.Dispose();
+    }
+    private void HandleGamePaused(bool isPaused)
+    {
+        if (isPaused)
+        {
+            _inputActions.Player.Disable();
+        }
+        else
+        {
+            _inputActions.Player.Enable();
+        }
     }
 
     public void OnMove(InputAction.CallbackContext ctx)
@@ -124,7 +139,7 @@ public class PlayerControls : MonoBehaviour
 
     void Update()
     {
-        if (Time.timeScale == 0f) return;
+        if (PauseControls.Instance != null && PauseControls.Instance.IsPaused) return;
 
         if (_dodgeCooldownTimer > 0f)
             _dodgeCooldownTimer -= Time.deltaTime;

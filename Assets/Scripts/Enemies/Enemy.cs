@@ -28,6 +28,8 @@ public class Enemy : MonoBehaviour, IDamageable
             ScoreManager.Instance.AddScore(pointsOnKill);
 
             zombieAI.TriggerDeath();
+
+            EnemySpawner.ActiveEnemiesCount--;
         }
     }
 }
