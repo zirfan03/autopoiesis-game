@@ -68,6 +68,8 @@ public class WeaponFire : MonoBehaviour
             sprintAction.action.started += OnSprintStarted;
             sprintAction.action.canceled += OnSprintCanceled;
         }
+
+        UpdateAmmoUI();
     }
 
     private void OnDisable()
@@ -84,6 +86,8 @@ public class WeaponFire : MonoBehaviour
             sprintAction.action.canceled -= OnSprintCanceled;
             isSprinting = false;
         }
+
+        CancelReload();
     }
 
     private void OnFireStarted(InputAction.CallbackContext ctx)

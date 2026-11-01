@@ -141,15 +141,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9040962bb5741424a9c45853ead69261, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  walkSpeed: 10
-  runSpeed: 20
+  walkSpeed: 5
+  runSpeed: 10
   turnSlowdownMultiplier: 0.5
   isRunning: 0
-  attackRange: 2.5
+  attackRange: 1.25
   attackDamage: 10
-  attackCooldown: 1.5
-  walkWindUpDelay: 0.25
-  runWindUpDelay: 0.125
+  attackCooldown: 3
+  walkWindUpDelay: 0.5
+  runWindUpDelay: 0.25
   swarmRadius: 1.5
   animator: {fileID: 0}
   meshRenderer: {fileID: 4008506119413801571}
