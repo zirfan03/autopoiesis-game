@@ -1,79 +1,139 @@
-using NUnit.Framework.Interfaces;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using TMPro;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Spawning Setup")]
-    [SerializeField] private GameObject enemyPrefab;
-    [SerializeField] private Transform[] spawnPoints;
+    public static EnemySpawner Instance { get; private set; }
+    public static int ActiveEnemiesCount = 0;
 
     [Header("Player Tracking")]
-    [Tooltip("The player's position to calculate spawn distances.")]
     [SerializeField] private Transform playerTransform;
 
-    [Header("Wave Settings")]
-    [Tooltip("The engine cap: maximum enemies allowed alive at once.")]
-    [SerializeField] private int maxActiveEnemies = 24;
-
-    [Tooltip("The wave pool: total enemies that will spawn during this event.")]
-    [SerializeField] private int totalEnemiesInWave = 48;
-
-    [Tooltip("Time to wait between individual spawns.")]
-    [SerializeField] private float spawnDelay = 3f;
-
     [Header("Proximity Spawn Logic")]
-    [Tooltip("Minimum distance from player to spawn.")]
+    [SerializeField] private Transform[] spawnPoints;
     [SerializeField] private float minSpawnDistance = 20f;
-    [Tooltip("How many of the closest valid spawn points to pick randomly from.")]
     [SerializeField] private int closestSpawnPoolSize = 3;
 
-    private int enemiesSpawnedSoFar = 0;
-    public static int ActiveEnemiesCount = 0;
+    [Header("Wave & UI Settings")]
+    [SerializeField] private float timeBetweenWaves = 5f;
+    [SerializeField] private float spawnDelay = 1.5f;
+    [SerializeField] private int maxActiveEnemies = 24;
+    [SerializeField] private TMP_Text waveText;
+
+    [Header("Normal Zombies")]
+    [SerializeField] private GameObject normalPrefab;
+    [SerializeField] private int baseNormalEnemies = 10;
+    [SerializeField] private float normalCountMultiplier = 1.25f;
+
+    [Header("Sprinter Zombies")]
+    [SerializeField] private GameObject sprinterPrefab;
+    [SerializeField] private int sprinterStartWave = 5;
+    [SerializeField] private int sprinterBaseCount = 2;
+    [SerializeField] private int sprinterIncrement = 2;
+    [SerializeField] private int sprinterInterval = 3;
+
+    public int CurrentWave { get; private set; } = 0;
+    private int totalEnemiesToSpawn = 0;
+    private int sprintersToSpawn = 0;
+
+    private bool wavesHaveStarted = false;
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
 
     private void Start()
     {
         if (playerTransform == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                playerTransform = playerObj.transform;
-            }
+            if (playerObj != null) playerTransform = playerObj.transform;
         }
     }
 
     public void SpawnEnemies()
     {
-        if (enemyPrefab == null)
+        if (wavesHaveStarted) return;
+
+        wavesHaveStarted = true;
+        StartCoroutine(NextWaveRoutine());
+    }
+
+    private IEnumerator NextWaveRoutine()
+    {
+        yield return new WaitForSeconds(timeBetweenWaves);
+
+        CurrentWave++;
+        if (waveText != null) waveText.text = $"WAVE {CurrentWave}";
+
+        CalculateWaveStats();
+        StartCoroutine(SpawnWaveRoutine());
+    }
+
+    private void CalculateWaveStats()
+    {
+        int normalCount = Mathf.FloorToInt(baseNormalEnemies * Mathf.Pow(normalCountMultiplier, CurrentWave - 1));
+
+        sprintersToSpawn = 0;
+        if (CurrentWave >= sprinterStartWave)
         {
-            Debug.LogWarning("Enemy Prefab is not assigned in the EnemySpawner!");
-            return;
+            int intervalsPassed = (CurrentWave - sprinterStartWave) / sprinterInterval;
+            sprintersToSpawn = sprinterBaseCount + (intervalsPassed * sprinterIncrement);
         }
 
-        enemiesSpawnedSoFar = 0;
-        StartCoroutine(SpawnWaveRoutine());
+        totalEnemiesToSpawn = normalCount + sprintersToSpawn;
     }
 
     private IEnumerator SpawnWaveRoutine()
     {
-        while (enemiesSpawnedSoFar < totalEnemiesInWave)
+        while (totalEnemiesToSpawn > 0)
         {
             if (ActiveEnemiesCount < maxActiveEnemies)
             {
                 Transform spawnPoint = GetOptimalSpawnPoint();
                 if (spawnPoint != null)
                 {
-                    Instantiate(enemyPrefab, spawnPoint.position, spawnPoint.rotation);
-
-                    ActiveEnemiesCount++;
-                    enemiesSpawnedSoFar++;
+                    SpawnEnemy(spawnPoint);
                 }
             }
-
             yield return new WaitForSeconds(spawnDelay);
+        }
+    }
+
+    private void SpawnEnemy(Transform spawnPoint)
+    {
+        GameObject prefabToSpawn = normalPrefab;
+
+        bool spawnSprinter = sprintersToSpawn > 0 && (Random.value > 0.7f || totalEnemiesToSpawn <= sprintersToSpawn);
+        if (spawnSprinter)
+        {
+            prefabToSpawn = sprinterPrefab;
+            sprintersToSpawn--;
+        }
+
+        GameObject enemyObj = Instantiate(prefabToSpawn, spawnPoint.position, spawnPoint.rotation);
+
+        if (enemyObj.TryGetComponent(out Enemy enemyScript))
+        {
+            enemyScript.InitializeHealth(CurrentWave);
+        }
+
+        ActiveEnemiesCount++;
+        totalEnemiesToSpawn--;
+    }
+
+    public void OnEnemyDefeated()
+    {
+        ActiveEnemiesCount--;
+
+        if (ActiveEnemiesCount <= 0 && totalEnemiesToSpawn <= 0)
+        {
+            StartCoroutine(NextWaveRoutine());
         }
     }
 

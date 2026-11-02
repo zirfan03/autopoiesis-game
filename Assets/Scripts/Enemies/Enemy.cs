@@ -3,10 +3,12 @@ using UnityEngine;
 [RequireComponent(typeof(zombieEnemyAI))]
 public class Enemy : MonoBehaviour, IDamageable
 {
-    [SerializeField] private float health = 100f;
+    [Header("Base Stats")]
+    [SerializeField] private float baseHealth = 100f;
+    [SerializeField] private float healthScalePerWave = 1.15f;
+    [SerializeField] private int pointsOnKill = 150;
 
-    [SerializeField] private int pointsOnKill = 100;
-
+    private float currentHealth;
     private zombieEnemyAI zombieAI;
     private bool isDead = false;
 
@@ -15,21 +17,32 @@ public class Enemy : MonoBehaviour, IDamageable
         zombieAI = GetComponent<zombieEnemyAI>();
     }
 
+    public void InitializeHealth(int waveNumber)
+    {
+        currentHealth = baseHealth * Mathf.Pow(healthScalePerWave, waveNumber - 1);
+    }
+
     public void TakeDamage(float amount)
     {
         if (isDead) return;
 
-        health -= amount;
+        currentHealth -= amount;
 
-        if (health <= 0f)
+        if (currentHealth <= 0f)
         {
             isDead = true;
 
-            ScoreManager.Instance.AddScore(pointsOnKill);
+            if (ScoreManager.Instance != null)
+            {
+                ScoreManager.Instance.AddScore(pointsOnKill);
+            }
 
             zombieAI.TriggerDeath();
 
-            EnemySpawner.ActiveEnemiesCount--;
+            if (EnemySpawner.Instance != null)
+            {
+                EnemySpawner.Instance.OnEnemyDefeated();
+            }
         }
     }
 }

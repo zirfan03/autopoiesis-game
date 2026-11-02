@@ -9,7 +9,7 @@ public class AmmoStation : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject promptUI;
 
-    private WeaponFire playerWeaponInRange;
+    private GameObject playerInZone;
 
     private void Start()
     {
@@ -35,31 +35,32 @@ public class AmmoStation : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        WeaponFire weapon = other.GetComponentInChildren<WeaponFire>();
-        if (weapon != null)
+        if (other.GetComponentInChildren<WeaponFire>() != null)
         {
-            playerWeaponInRange = weapon;
-
+            playerInZone = other.gameObject;
             if (promptUI != null) promptUI.SetActive(true);
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        WeaponFire weapon = other.GetComponentInChildren<WeaponFire>();
-        if (weapon != null && weapon == playerWeaponInRange)
+        if (playerInZone != null && other.gameObject == playerInZone)
         {
-            playerWeaponInRange = null;
-
+            playerInZone = null;
             if (promptUI != null) promptUI.SetActive(false);
         }
     }
 
     private void OnInteract(InputAction.CallbackContext ctx)
     {
-        if (playerWeaponInRange != null)
+        if (playerInZone != null)
         {
-            playerWeaponInRange.RefillReserveAmmo();
+            WeaponFire activeWeapon = playerInZone.GetComponentInChildren<WeaponFire>();
+
+            if (activeWeapon != null)
+            {
+                activeWeapon.RefillReserveAmmo();
+            }
         }
     }
 }
